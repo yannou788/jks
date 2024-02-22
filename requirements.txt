@@ -1,0 +1,6 @@
+python-jenkins
+croniter
+termcolor
+rich
+kubernetes
+python-gitlab
