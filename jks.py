@@ -1,3 +1,4 @@
+import os
 import re
 import sys
 import time
@@ -13,6 +14,7 @@ from termcolor import colored
 from rich.console import Console
 from urllib.parse import quote_plus
 from kubernetes import client, config
+from loaders import TextLoader
 
 # Logging
 logging.basicConfig(filename='/tmp/jks.log', level=logging.DEBUG, format='%(asctime)s %(levelname)s %(name)s %(message)s')
@@ -169,6 +171,27 @@ def get_branch_name(default):
 
   return branch_name
 
+def get_installation_id(installation_id):
+  if len(args.installation_id) > 12:
+    print(f"{colored('[Error]', 'red')} Installation id should be less than 12 characters")
+    sys.exit(1)
+  # Clear installation id
+  installation_id = re.sub('[^A-Za-z0-9]+', '', installation_id)
+  return installation_id
+
+def get_env_name(name):
+  env = None
+  if name:
+    env = name
+    if name == 'current':
+      env = config.list_kube_config_contexts()[1]['context']['cluster'].split('_')[-1] if config.list_kube_config_contexts() else None
+
+  if env is None:
+    print(f"{colored('[Error]', 'red')} Environment not found")
+    logger.error('Environment not found')
+    sys.exit(1)
+  return env
+
 def check_git_branch_name(branch_name):
   if branch_name is None:
     print(colored('[Error]', 'red') + ' Git branch name not found')
@@ -309,22 +332,41 @@ def start_env(server, branch_name, env_name, show_progression = False, slack_use
   if show_progression:
     get_build_progresion(server, project_name, build_number);
 
-def start_build(server, branch_name, show_progression = False):
+def start_build(server, branch_name, show_progression = True):
   build_number = None
 
   # Format project name
   project_name = f'Product/Build/{quote_plus(branch_name)}'
-
+  
   # Get build number
+  before_build_number = server.get_job_info(project_name)['lastBuild']['number']
+
   try:
     build_number = server.build_job(project_name)
     print(f"{colored('[Success]', 'cyan')} build number: {build_number}")
   except jenkins.JenkinsException as e:
-    print(f"{colored('[Error]', 'red')} An exception occurred look at /tmp/jks.log");
+    print(f"{colored('[Error]', 'red')} An exception occurred look at /tmp/jks.log")
     logger.error(e)
 
   if show_progression:
-    get_build_progresion(server, project_name, build_number);
+    openBuildInformation(server, project_name, branch_name, before_build_number)
+    #get_build_progresion(server, project_name, build_number)
+
+def openBuildInformation(server, project_name, branch_name, before_build_number):
+  after_build_number = before_build_number
+  loader = TextLoader()
+  loader.start()
+  
+  i = 0
+  while before_build_number + 1 != after_build_number:
+    after_build_number = server.get_job_info(project_name)['lastBuild']['number']
+    i = (i + 1)
+    time.sleep(1)
+  loader.stop()
+
+  jenkinsUrl = f"{custom_config['JENKINS']['ServerUrl']}/blue/organizations/jenkins/Product%2FBuild/detail/{quote_plus(branch_name)}/{after_build_number}"
+  print(f"{colored('[Success]', 'cyan')} open navigatory: {jenkinsUrl}")
+  os.system("sensible-browser " + jenkinsUrl)
 
 def askValidation(server, validation_type, prefix_name, show_progression = False, slack_user_id = ''):
   build_number = None
@@ -351,7 +393,7 @@ def askValidation(server, validation_type, prefix_name, show_progression = False
   if show_progression:
     get_build_progresion(server, project_name, build_number);
 
-def deploy(server, branch_name, prefix_name, show_progression = False, slack_user_id = '', test_types = [], installation_id = 'saagie', kubernetes_version = ''):
+def deploy(server, branch_name, prefix_name, show_progression = False, slack_user_id = '', test_types = [], installation_id = 'saagie', kubernetes_version = '', product_version = ''):
   build_number = None
 
   # Format project name
@@ -365,7 +407,8 @@ def deploy(server, branch_name, prefix_name, show_progression = False, slack_use
     'slackId': slack_user_id,
     'test_types': ','.join(test_types),
     'installationId': installation_id,
-    'kubernetes_version': kubernetes_version
+    'kubernetes_version': kubernetes_version,
+    'product_version': product_version,
   }
 
   # Get build number
@@ -379,189 +422,267 @@ def deploy(server, branch_name, prefix_name, show_progression = False, slack_use
   if show_progression:
     get_build_progresion(server, project_name, build_number);
 
+def create(args):
+  """Create a new environment gke with command line args"""
+
+  # Connect to jenkins
+  server = connect_to_jenkins(custom_config['JENKINS'])
+  branch_name = get_branch_name(args.branch)
+  env = get_env_name(args.env)
+  installation_id = get_installation_id(args.installation_id)
+
+  print(f"{colored('[Create]', 'cyan')}:")
+  print(f"• Branch: {colored(branch_name, 'green')}")
+  print(f"• Env: {colored(env, 'green')}") 
+  print(f"• Installation Id: {colored(args.installation_id, 'green')}")
+
+  if args.kubernetes_version: 
+    print(f"• Kubernetes version: {colored(args.kubernetes_version, 'green')}")
+  
+  if confirm(f"{colored('Are you sure [Y/N]? ', 'light_blue', attrs=['bold'])}"):
+    # Start deploy
+    deploy(
+      server=server,
+      branch_name=branch_name,
+      prefix_name=env,
+      slack_user_id=custom_config['SLACK']['UserId'],
+      test_types=args.test_types,
+      installation_id=args.installation_id,
+      kubernetes_version=args.kubernetes_version,
+      product_version=args.product_version
+    );
+
+def start(args):
+  """Start an environment gke with command line args"""
+  # Connect to jenkins
+  server = connect_to_jenkins(custom_config['JENKINS'])
+
+  branch_name = get_branch_name(args.branch)
+  env = get_env_name(args.env)
+
+  print(f"{colored('[Start]', 'cyan')}:")
+  print(f"• Branch: {colored(branch_name, 'green')}")
+  print(f"• Env: {colored(env, 'green')}")
+
+  if confirm(f"{colored('Are you sure [Y/N]? ', 'light_blue', attrs=['bold'])}"):
+    # Start envs
+    start_env(server, branch_name, env, slack_user_id=custom_config['SLACK']['UserId'])
+
+def drop(args):
+  """Drop an environment gke with command line args"""
+  # Connect to jenkins
+  server = connect_to_jenkins(custom_config['JENKINS'])
+
+  env = get_env_name(args.env)
+
+  print(f"{colored('[Delete]', 'cyan')}:")
+  print(f"• Env: {colored(env, 'green')}")
+
+  if confirm(f"{colored('Are you sure [Y/N]? ', 'light_blue', attrs=['bold'])}"):
+    # Remove envs
+    delete_env(server, env, slack_user_id=custom_config['SLACK']['UserId'])   
+
+def cron(args, action):
+  """Cron an environment gke with command line args"""
+    
+  # Connect to jenkins
+  server = connect_to_jenkins(custom_config['JENKINS'])
+
+  branch_name = get_branch_name(args.branch)
+  env = get_env_name(args.env)
+
+  type = {}
+  if action == "start":      
+    type['start'] = branch_name
+    print(f"{colored('[Cron Start]', 'cyan')} {colored(type['start'], 'green')}:")
+  if action == "build":
+    type['build'] = branch_name
+    print(f"{colored('[Cron Build]', 'cyan')} {colored(type['build'], 'green')}:")
+  if action == "create":
+    type['deploy'] = branch_name
+    print(f"{colored('[Cron Create]', 'cyan')} {colored(type['deploy'], 'green')}:")
+    print(f"• Installation Id: {colored(args.installation_id, 'green')}")
+  
+  print(f"• Branch: {colored(branch_name, 'green')}")
+  print(f"• Env: {colored(env, 'green')}")
+  
+  if croniter.is_valid(args.format) is False:
+    print(f"{colored('[Error]', 'red')} Cron is not valid")
+    sys.exit(1)
+  print(f"• Format: {colored(args.format, 'green')}")
+  print(f"• Action: {colored(action, 'green')}")
+
+  # Check if type is empty
+  if type.__len__() == 0:
+    parser.error(f"{colored('[Error]', 'red')} You must specify a type with cron [s, b, d]")
+
+  # Check if all values are equal
+  if check_equal_values(type) == False:
+    print(f"{colored('[Error]', 'red')} The branch name must be the same for all types for this moment")
+    sys.exit(1)
+
+  if confirm(f"{colored('Are you sure [Y/N]? ', 'light_blue', attrs=['bold'])}"):
+    create_pipeline(server, f"cron.{list(type.values())[0]}",  env=env, cron=args.cron, type=type, slack_user_id=custom_config['SLACK']['UserId'])
+
+
+def cronStart(args):
+  cron(args, 'start')
+
+def cronCreate(args):
+  cron(args, 'create')
+
+def cronBuild(args):
+  cron(args, 'build')
+
+def build(args):
+  """Build product with command line args"""
+  # Connect to jenkins
+  server = connect_to_jenkins(custom_config['JENKINS'])
+
+  branch_name = get_branch_name(args.branch)
+
+  #
+  print(f"{colored('[Build]', 'cyan')}:")
+  print(f"• Branch: {colored(branch_name, 'green')}")
+  
+  if confirm(f"{colored('Are you sure [Y/N]? ', 'light_blue', attrs=['bold'])}"):
+    # Start build
+    start_build(server, branch_name, True);
+
+def open_mr(args):
+   # Get gitlab user id
+  gitlabUserId = get_gitlab_user_id(custom_config['GITLAB']['ServerUrl'], custom_config['GITLAB']['ApiKey']);
+
+  print(f"{colored('[MR]', 'cyan')} Open MR for cardId: {colored(args.card, 'green')}")
+
+  if confirm(f"{colored('Are you sure [Y/N]? ', 'light_blue', attrs=['bold'])}"):
+    open_mr(args.card, gitlabUserId, custom_config['SLACK']['UserId']);
+
+def get_assigned_mr(args):
+  print(f"{colored('[Get Assigned MR]', 'cyan')}")
+
+  try:
+    gl = gitlab.Gitlab(custom_config['GITLAB']['ServerUrl'], private_token=custom_config['GITLAB']['ApiKey'])
+
+    gl.auth()
+
+    # Get merge requests that i'm a reviewer
+    merge_requests = gl.mergerequests.list(reviewer_id=gl.user.id)
+
+    merge_requests_without_thumbs_up = [mr for mr in merge_requests if mr.upvotes < 2]
+
+    for mr in merge_requests_without_thumbs_up:
+      print(f"Merge Request: {mr.title}")
+      print(f"Link: {mr.web_url}")
+      print()
+  except gitlab.Exception as e:
+    print(f"{colored('[Error]', 'red')} An exception occurred look at /tmp/jks.log");
+    logger.error(e)
+
+def test(args):
+  print(f"{colored('[Test]', 'cyan')} feature not available")
+
+def ask_validation(args):
+  print(f"{colored('[Ask Validation]', 'cyan')} feature not available")
+  # Check if card_id is empty
+  #if args.card_id == None:
+  #  parser.error(f"{colored('[Error]', 'red')} You must specify a cardId")
+  
+  #if env == None:
+  #  parser.error(f"{colored('[Error]', 'red')} You must specify a env")
+
+  #
+  #print(f"{colored('[Ask Validation]', 'cyan')} {colored(','.join(args.ask_validation), 'green')} for cardId: {colored(args.card_id, 'green')} on env: {colored(env, 'green')}")
+
+  #if confirm(f"{colored('Are you sure [Y/N]? ', 'light_blue', attrs=['bold'])}"):
+  #  askValidation(server, args.ask_validation, args.card_id, env,  env=env, slack_user_id=custom_config['SLACK']['UserId'])
+
 if __name__ == "__main__":
-
-  parser = argparse.ArgumentParser(
-    prog='Saagie Jenkins',
-    description='Use jenkins from command line',)
-
-  # Arguments
-  parser.add_argument('-v', '--version', action='version', version='%(prog)s 2.3.1')
-  parser.add_argument('-c', '--cron', type=str, help='Set cron')
-  parser.add_argument('-mr', '--open-mr', type=int, help='Open MR specified by card id')
-  parser.add_argument('-ask', '--ask-validation', type=str, nargs='+', choices=['tests', 'pm', 'ux', 'secu'], help='Ask validation (tests|pm|ux|secu)')
-  parser.add_argument('-tt', '--test-types', type=str, default=[], nargs='+', choices=['UI', 'API', 'APIv2', 'All'], help='Tests to run after deployement (UI|API|APIv2|All)')
-  parser.add_argument('-cid', '--card-id', type=str, help='Specify a card ID')
-  parser.add_argument('-rm', '--remove', const='current', nargs='?', type=str, help='Environment')
-  parser.add_argument('-iid', '--installation-id', default='saagie', const='saagie', nargs='?', type=str, help='Installation Id')
-  parser.add_argument('-e', '--env', default='current', const='current', nargs='?', type=str, help='Environment')
-  parser.add_argument('-b', '--build', const='current', nargs='?', type=str, help='Build current or specific branch')
-  parser.add_argument('-d', '--deploy', const='current', nargs='?', type=str, help='Deploy current or specific branch')
-  parser.add_argument('-s', '--start', const='current', nargs='?', type=str, help='Start an env with current or specific branch')
-  parser.add_argument('-kv', '--kubernetes-version', default='', nargs='?', type=str, help='Set a custom kubernete version')
-  parser.add_argument('-gamr', '--get-assigned-mr', action='store_true', help='Start an env with current or specific branch')
-
-  args = parser.parse_args()
-
   # Read config file
   config_file_path = f"{pathlib.Path(__file__).parent.resolve()}/.jks-env"
   custom_config = read_config_file(config_file_path)
 
-  # Connect to jenkins
-  server = connect_to_jenkins(custom_config['JENKINS'])
+  parser = argparse.ArgumentParser(
+    prog='Saagie Jenkins',
+    description='Use jenkins from command line',
+  )
 
-  # Clear installation id
-  args.installation_id = re.sub('[^A-Za-z0-9]+', '', args.installation_id)
+  # Arguments
+  parser.add_argument('-v', '--version', action='version', version='%(prog)s 2.3.2')
+  subparsers = parser.add_subparsers(help='sub-command help')
+
+  # create the parser for the "gke start" command
+  parserStart = subparsers.add_parser('start', help='start --help')
+  parserStart.add_argument('-b', '--branch', default='current', const='current', nargs='?', type=str, help='Branch name')
+  parserStart.add_argument('-e', '--env', default='current', const='current', nargs='?', type=str, help='Environment')
+  parserStart.set_defaults(func=start)
+
+  # create the parser for the "gke create" command
+  parserCreate = subparsers.add_parser('create', help='create --help')
+  parserCreate.add_argument('-b', '--branch', default='current', const='current', nargs='?', type=str, help='Branch name')
+  parserCreate.add_argument('-e', '--env', default='current', const='current', nargs='?', type=str, help='Environment')
+  parserCreate.add_argument('-iid', '--installation-id', default='saagie', const='saagie', nargs='?', type=str, help='Installation Id')
+  parserCreate.add_argument('-kv', '--kubernetes-version', default='', nargs='?', type=str, help='Set a custom kubernete version')
+  parserCreate.add_argument('-tt', '--test-types', type=str, default=[], nargs='+', choices=['UI', 'API', 'APIv2', 'All'], help='Tests to run after deployement (UI|API|APIv2|All)')
+  parserCreate.add_argument('-p', '--product_version', default='', const='', nargs='?', type=str, help='Product version')
+  parserCreate.set_defaults(func=create)
+
+  # create the parser for the "gke drop" command
+  parserDrop = subparsers.add_parser('drop', help='drop --help')
+  parserDrop.add_argument('-e', '--env', default='current', const='current', nargs='?', type=str, help='Environment')
+  parserDrop.set_defaults(func=drop)
+
+  # create the parser for the "gke cron" command
+  parserCron = subparsers.add_parser('cron', help='cron --help') 
+  subparsersCron = parserCron.add_subparsers(help='sub-command help')
+
+  parserCronStart = subparsersCron.add_parser('start', help='cron start --help')
+  parserCronStart.add_argument('-f', '--format', required=True, nargs='?', type=str, help='Cron format')
+  parserCronStart.add_argument('-b', '--branch', default='current', const='current', nargs='?', type=str, help='Branch name')
+  parserCronStart.add_argument('-e', '--env', default='current', const='current', nargs='?', type=str, help='Environment')
+  parserCronStart.set_defaults(func=cronStart)
+
+  parserCronCreate = subparsersCron.add_parser('create', help='cron create --help')
+  parserCronCreate.add_argument('-f', '--format', required=True, nargs='?', type=str, help='Cron format')
+  parserCronCreate.add_argument('-b', '--branch', default='current', const='current', nargs='?', type=str, help='Branch name')
+  parserCronCreate.add_argument('-e', '--env', default='current', const='current', nargs='?', type=str, help='Environment')
+  parserCronCreate.add_argument('-iid', '--installation-id', default='saagie', const='saagie', nargs='?', type=str, help='Installation Id')
+  parserCronCreate.set_defaults(func=cronCreate)
+
+  parserCronBuild = subparsersCron.add_parser('build', help='cron build --help')
+  parserCronBuild.add_argument('-f', '--format', required=True, nargs='?', type=str, help='Cron format')
+  parserCronBuild.add_argument('-b', '--branch', default='current', const='current', nargs='?', type=str, help='Branch name')
+  parserCronBuild.set_defaults(func=cronBuild)
   
-  # Get env name
-  env = None
-  if args.env:
-    env = args.env
-    if args.env == 'current':
-      env = config.list_kube_config_contexts()[1]['context']['cluster'].split('_')[-1] if config.list_kube_config_contexts() else None
+  # create the parser for the "product build" command
+  parserBuild = subparsers.add_parser('build', help='build --help')
+  parserBuild.add_argument('-b', '--branch', default='current', const='current', nargs='?', type=str, help='Branch name')
+  #parserBuild.add_argument('-o', '--open', action=argparse.BooleanOptionalAction, help='Open navigator on Blue Ocean')
+  parserBuild.set_defaults(func=build)
   
-  if args.open_mr:
-    # Get gitlab user id
-    gitlabUserId = get_gitlab_user_id(custom_config['GITLAB']['ServerUrl'], custom_config['GITLAB']['ApiKey']);
+  # create the parser for the "product open_mr" command
+  parserOpenMr = subparsers.add_parser('open_mr', help='open_mr --help')
+  parserOpenMr.add_argument('-c', '--card', required=True, nargs='?', type=str, help='Card id jira')
+  parserOpenMr.add_argument('-b', '--branch', default='current', const='current', nargs='?', type=str, help='Branch name')
+  parserOpenMr.set_defaults(func=open_mr)
 
-    print(f"{colored('[MR]', 'cyan')} Open MR for cardId: {colored(args.open_mr, 'green')}")
-
-    if confirm(f"{colored('Are you sure [Y/N]? ', 'light_blue', attrs=['bold'])}"):
-      open_mr(args.open_mr, gitlabUserId, custom_config['SLACK']['UserId']);
-  elif args.get_assigned_mr:
-    print(f"{colored('[Get Assigned MR]', 'cyan')}")
-
-    try:
-      gl = gitlab.Gitlab(custom_config['GITLAB']['ServerUrl'], private_token=custom_config['GITLAB']['ApiKey'])
-
-      gl.auth()
-
-      # Get merge requests that i'm a reviewer
-      merge_requests = gl.mergerequests.list(reviewer_id=gl.user.id)
-
-      merge_requests_without_thumbs_up = [mr for mr in merge_requests if mr.upvotes < 2]
-
-      for mr in merge_requests_without_thumbs_up:
-        print(f"Merge Request: {mr.title}")
-        print(f"Link: {mr.web_url}")
-        print()
-    except gitlab.Exception as e:
-      print(f"{colored('[Error]', 'red')} An exception occurred look at /tmp/jks.log");
-      logger.error(e)
-  elif args.ask_validation:
-    print(f"{colored('[Ask Validation]', 'cyan')} {colored(','.join(args.ask_validation), 'green')} feature not available")
-    # Check if card_id is empty
-    #if args.card_id == None:
-    #  parser.error(f"{colored('[Error]', 'red')} You must specify a cardId")
-    
-    #if env == None:
-    #  parser.error(f"{colored('[Error]', 'red')} You must specify a env")
-
-    #
-    #print(f"{colored('[Ask Validation]', 'cyan')} {colored(','.join(args.ask_validation), 'green')} for cardId: {colored(args.card_id, 'green')} on env: {colored(env, 'green')}")
-
-    #if confirm(f"{colored('Are you sure [Y/N]? ', 'light_blue', attrs=['bold'])}"):
-    #  askValidation(server, args.ask_validation, args.card_id, env,  env=env, slack_user_id=custom_config['SLACK']['UserId'])
-  elif args.remove:
-    #
-    print(f"{colored('[Delete]', 'cyan')}:")
-    print(f"• Env: {colored(env, 'green')}")
-
-    if confirm(f"{colored('Are you sure [Y/N]? ', 'light_blue', attrs=['bold'])}"):
-      # Remove envs
-      delete_env(server, env, slack_user_id=custom_config['SLACK']['UserId'])   
-  elif args.cron:
-    if croniter.is_valid(args.cron) is False:
-      print(f"{colored('[Error]', 'red')} Cron is not valid")
-      sys.exit(1)
-
-    type = {}
-    if args.start:      
-      type['start'] = get_branch_name(args.start)
-      print(f"{colored('[Cron Start]', 'cyan')} {colored(type['start'], 'green')}:")
-    if args.build:
-      type['build'] = get_branch_name(args.build)
-      print(f"{colored('[Cron Build]', 'cyan')} {colored(type['build'], 'green')}:")
-    if args.deploy:
-      type['deploy'] = get_branch_name(args.deploy)
-      print(f"{colored('[Cron Deploy]', 'cyan')} {colored(type['deploy'], 'green')}:")
-    
-    print(f"• Env: {colored(env, 'green')}") 
-    print(f"• Installation Id: {colored(args.installation_id, 'green')}")
-
-    # Check if type is empty
-    if type.__len__() == 0:
-      parser.error(f"{colored('[Error]', 'red')} You must specify a type with cron [s, b, d]")
-
-    # Check if all values are equal
-    if check_equal_values(type) == False:
-      print(f"{colored('[Error]', 'red')} The branch name must be the same for all types for this moment")
-      sys.exit(1)
-
-    if confirm(f"{colored('Are you sure [Y/N]? ', 'light_blue', attrs=['bold'])}"):
-      create_pipeline(server, f"cron.{list(type.values())[0]}",  env=env, cron=args.cron, type=type, slack_user_id=custom_config['SLACK']['UserId'])
-  elif args.start:
-    branch_name = get_branch_name(args.start)
+  # create the parser for the "product get_assigned_mr" command
+  parserGetAssignedMr = subparsers.add_parser('get_assigned_mr', help='get_assigned_mr --help')
+  parserGetAssignedMr.set_defaults(func=get_assigned_mr)
   
-    if env is None:
-      print(f"{colored('[Error]', 'red')} Environment not found")
-      sys.exit(1)
+  # create the parser for the "product ask_validation" command
+  parserAskValidation = subparsers.add_parser('ask_validation', help='ask_validation --help')
+  parserAskValidation.set_defaults(func=ask_validation)
+  
+  # create the parser for the "product test" command
+  parserTest = subparsers.add_parser('test', help='test --help')
+  parserTest.set_defaults(func=test)
 
-    #
-    print(f"{colored('[Start]', 'cyan')}:")
-    print(f"• Branch: {colored(branch_name, 'green')}")
-    print(f"• Env: {colored(env, 'green')}")
-
-    if confirm(f"{colored('Are you sure [Y/N]? ', 'light_blue', attrs=['bold'])}"):
-      # Start envs
-      start_env(server, branch_name, env, slack_user_id=custom_config['SLACK']['UserId'])
-  elif args.build:
-    branch_name = get_branch_name(args.build)
-
-    #
-    print(f"{colored('[Build]', 'cyan')}:")
-    print(f"• Branch: {colored(branch_name, 'green')}")
-    
-    if confirm(f"{colored('Are you sure [Y/N]? ', 'light_blue', attrs=['bold'])}"):
-      # Start build
-      start_build(server, branch_name, False);
-  elif args.deploy:
-    branch_name = get_branch_name(args.deploy)
-
-    if args.deploy == 'current':
-      # Get current branch name
-      branch_name = get_git_branch_name()
-
-      # Check branch name
-      check_git_branch_name(branch_name);
-    
-    if env is None:
-      print(f"{colored('[Error]', 'red')} Environment not found")
-      sys.exit(1)
-
-    if len(args.installation_id) > 12:
-      print(f"{colored('[Error]', 'red')} Installation id should be less than 12 characters")
-      sys.exit(1)
-
-    print(f"{colored('[Deploy]', 'cyan')}:")
-    print(f"• Branch: {colored(branch_name, 'green')}")
-    print(f"• Env: {colored(env, 'green')}") 
-    print(f"• Installation Id: {colored(args.installation_id, 'green')}")
-
-    # 
-    if args.kubernetes_version: 
-      print(f"• Kubernetes version: {colored(args.kubernetes_version, 'green')}")
-    
-    if confirm(f"{colored('Are you sure [Y/N]? ', 'light_blue', attrs=['bold'])}"):
-      # Start deploy
-      deploy(
-        server=server,
-        branch_name=branch_name,
-        prefix_name=env,
-        slack_user_id=custom_config['SLACK']['UserId'],
-        test_types=args.test_types,
-        installation_id=args.installation_id,
-        kubernetes_version=args.kubernetes_version
-      );
-
-  sys.exit(1);
+  args = parser.parse_args()
+  try:
+    args.func(args)
+  except KeyboardInterrupt:
+    exit(0)
+  except Exception as e:
+    print(e)
+    parser.print_help()

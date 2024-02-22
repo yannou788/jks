@@ -4,3 +4,4 @@ termcolor
 rich
 kubernetes
 python-gitlab
+pyloaders

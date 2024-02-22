@@ -65,20 +65,98 @@ Ensure Python 3.9 and pip 3.9 are installed:
 
 ## Arguments
 
-|Arguments                     |Default                        | Description                                                    | Comments                                                               |
-|------------------------------|-------------------------------|----------------------------------------------------------------|------------------------------------------------------------------------|
-| `-v, --version`              |                               | Display program version                                        |                                                                        |
-|`-c, --cron`                  |                               | Setting up a Jenkins cron                                      |                                                                        |
-|`-mr, --open-mr`              |                               | Open an MR specified by card ID.                               |                                                                        |
-|`-e, --env`                   |Current                        | Set environment.                                               |                                                                        |
-|`-b, --build`                 |Current                        | Build current or specific branch.                              |                                                                        |
-|`-d, --deploy`                |Current                        | Deploy current or specific branch.                             |                                                                        |
-|`-s, --start`                 |Current                        | Start an environment with current or specific branch.          |                                                                        |
-|`-rm, --remove`               |Current                        | Remove an environment with current or specific envId           |                                                                        |
-|`-tt, --test-types`           |Current                        | Tests to run after test creation (UI|API|APIv2|All)            |                                                                        |
-|`-iid, --installation_id`     |saagie                         | A short name. In lower case only.                              |                                                                        |
-|`-gamr, --get-assigned-mr`    |                               | Get assigned MR with less than 2 upvotes                       |                                                                        |
-|`-kv, --kubernetes-version`   |                               | Set a custom kubernete version                                 |                                                                        |
+| Arguments             | Description                  |
+| :-------------------- | :--------------------------- |
+| `start`               | start a GKE environment      |
+| `create`              | create a GKE environment     |
+| `drop`                | drop a GKE environment       |
+| `cron`                | create a Jenkins cron        |
+| `build`               | build product                |
+| `open_mr`             | open a new MR                |
+| `get_assigned_mr`     | Get a list of assigned MR    |
+| `ask_validation`      | Ask validation (tests or PM) |
+| `test`                | Run test on GKE environment  |
+
+### Start Arguments
+
+| Arguments             | Description                                                    |
+| :-------------------- | :------------------------------------------------------------- |
+| `-b, --branch`        | Branch name (if not specify use current branch)                |
+| `-e, --env`           | GKE environment name (if not specify use current environment)  |
+
+### Create Arguments
+
+| Arguments                      | Description                                                              |
+| :----------------------------- | :----------------------------------------------------------------------- |
+| `-b, --branch`                 | Branch name (if not specify use current branch)                          |
+| `-e, --env`                    | GKE environment name (if not specify use current environment)            |
+| `-iid, --installation-id`      | A short name. In lower case only. (if not specify use current `saagie`)  |
+| `-kv, --kubernetes-version`    | Set a custom kubernete version                                           |
+| `-tt, --test-types`            | Tests to run after test creation (UI / API / APIv2 / All)                |
+| `-p, --product_version`        | Use a specify product version                                            |
+
+### Drop Arguments
+
+| Arguments             | Description                                                    |
+| :-------------------- | :------------------------------------------------------------- |
+| `-e, --env`           | GKE environment name (if not specify use current environment)  |
+
+### Cron Arguments
+
+| Arguments             | Description                |
+| :-------------------- | :------------------------- |
+| `start`               | start a GKE environment    |
+| `create`              | create a GKE environment   |
+| `build`               | build product              |
+
+#### Cron Start Arguments
+
+| Arguments                      | Required | Description                                                    |
+| :----------------------------- | :------- | :------------------------------------------------------------- |
+| `-f, --format`                 | true     | Setting up a Jenkins cron                                      |
+| `-b, --branch`                 | false    | Branch name (if not specify use current branch)                |
+| `-e, --env`                    | false    | GKE environment name (if not specify use current environment)  |
+
+#### Cron Create Arguments
+
+| Arguments                      | Required | Description                                                              |
+| :----------------------------- | :------- | :----------------------------------------------------------------------- |
+| `-f, --format`                 | true     | Setting up a Jenkins cron                                                |
+| `-b, --branch`                 | false    | Branch name (if not specify use current branch)                          |
+| `-e, --env`                    | false    | GKE environment name (if not specify use current environment)            |
+| `-iid, --installation-id`      | false    | A short name. In lower case only. (if not specify use current `saagie`)  |
+
+#### Cron Build Arguments
+
+| Arguments                      | Required | Description                                      |
+| :----------------------------- | :------- | :----------------------------------------------- |
+| `-f, --format`                 | true     | Setting up a Jenkins cron                        |
+| `-b, --branch`                 | false    | Branch name (if not specify use current branch)  |
+
+### Build Arguments
+
+| Arguments                      | Description                                      |
+| :----------------------------- | :----------------------------------------------- |
+| `-b, --branch`                 | Branch name (if not specify use current branch)  |
+
+#### Open MR Arguments
+
+| Arguments         | Required | Description                                      |
+| :---------------- | :------- | :----------------------------------------------- |
+| `-c, --card`      | true     | A Jira Card ID                                   |
+| `-b, --branch`    | false    | Branch name (if not specify use current branch)  |
+
+#### Get Assigned MR Arguments
+
+No args
+
+#### Ask Validation Arguments
+
+TODO
+
+#### Test Arguments
+
+TODO
 
 ---
 
@@ -86,74 +164,73 @@ Ensure Python 3.9 and pip 3.9 are installed:
 
 * Open an merge request
     ```bash
-    jks -mr id_of_your_ticket
+    jks open_mr -c id_of_your_ticket
     ```
 
 * Setting up a cron (experimental)
     ```bash
-    jks -c '*/5 * * * *' -s -d -b
-    jks -c '*/5 * * * *' -s -e dev1234
-    jks -c '*/5 * * * *' -s story/1234 -d story/1234 -b story/1234
+    jks cron start -f '*/5 * * * *'
+    jks cron start -f '*/5 * * * *' -b story/1234 -e dev1234
     ```
 
-* Deploy
+* Create / Deploy
     ```bash
     # Deploy current branch and current env
-    jks -d
+    jks create
 
     # Deploy current branch on a custom env
-    jks -d -e dev1234
+    jks create -e dev1234
 
     # Deploy a custom branch
-    jks -d story/1234
+    jks create -b story/1234
 
     # Deploy with a custom kubernetes version
-    jks -d -kv 1.26
+    jks create -kv 1.26
 
     # Deploy with a custom installation id
-    jks -d -iid saagie
+    jks create -iid saagie
 
     # Deploy with test types
-    jks -d -tt UI,API,APIv2,ALL
+    jks create -tt UI,API,APIv2,ALL
 
     # Deploy with full customization
-    jks -d story/123 -e dev123 -kv 1.26 -tt UI,API,APIv2,ALL --iid saagie
+    jks create -b story/123 -e dev123 -kv 1.26 -tt UI,API,APIv2,ALL --iid saagie
     ```
 
 * Start
     ```bash
     # Start current env with a current branch
-    jks -s
+    jks start
 
     # Start current env with a custom branch
-    jks -s story/1234
+    jks start story/1234
 
     # Start a custom env with current branch
-    jks -s -e dev1234
+    jks start -e dev1234
 
     # Start with full customization
-    jks -s story/1234 -e dev1234
+    jks start -b story/1234 -e dev1234
     ```
 
 * Remove
     ```bash
     # Remove current env
-    jks -rm
+    jks drop
 
     # Remove custom env
-    jks -rm -e dev1234
+    jks drop -e dev1234
     ```
 
 * Build
     ```bash
     # Build current branch
-    jks -b
+    jks build
 
     # Build a custom branch
-    jks -b story/1234
+    jks build -b story/1234
     ```
 
 * Get assigned MR
     ```bash
-    jks -gamr
+    jks get_assigned_mr
     ```
