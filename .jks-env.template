@@ -1,0 +1,11 @@
+[JENKINS]
+ServerUrl = https://jenkins.devtools.saagie.tech
+ApiKey = <YOUR JENKINS API KEY>
+Username = <YOUR JENKINS USERNAME>
+
+[GITLAB]
+ServerUrl = https://gitlab.com
+ApiKey = <YOUR GITLAB API KEY>
+
+[SLACK]
+UserId = <YOUR SLACK USER ID>
