@@ -54,7 +54,7 @@ Ensure Python 3.9 and pip 3.9 are installed:
     > To get your Slack ID: Go to your Slack profile and look for the option that allows you to view or copy your member ID.
 4. Install required dependencies:
     ```shell
-    python3.9 install -r requirements.txt
+    pip3.9 install -r requirements.txt
     ```
 5. Create an Alias in your terminal configuration file
     ```shell
