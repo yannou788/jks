@@ -49,14 +49,14 @@ Ensure Python 3.9 and pip 3.9 are installed:
     [SLACK]
     UserId = UserId
     ```
-    > To get your Jenkins API Key: Go to <https://jenkins.devtools.saagie.tech/user/YOUR_ID/configure> and create a token
-    > To get your Gitlab API Key: Go to <https://gitlab.com/-/profile/personal_access_tokens> and create a token
-    > To get your Slack ID: Go to your Slack profile and look for the option that allows you to view or copy your member ID.
+   > To get your Jenkins API Key: Go to <https://jenkins.devtools.saagie.tech/user/YOUR_ID/configure> and create a token.  
+   > To get your Gitlab API Key: Go to <https://gitlab.com/-/profile/personal_access_tokens> and create a token.  
+   > To get your Slack ID: Go to your Slack profile and look for the option that allows you to view or copy your member ID.
 4. Install required dependencies:
     ```shell
     pip3.9 install -r requirements.txt
     ```
-5. Create an Alias in your terminal configuration file
+5. Create an Alias in your terminal configuration file:
     ```shell
     alias jks="python3.9 ~/.jks/jks.py"
     ```
@@ -65,88 +65,88 @@ Ensure Python 3.9 and pip 3.9 are installed:
 
 ## Arguments
 
-| Arguments             | Description                  |
-| :-------------------- | :--------------------------- |
-| `start`               | start a GKE environment      |
-| `create`              | create a GKE environment     |
-| `drop`                | drop a GKE environment       |
-| `cron`                | create a Jenkins cron        |
-| `build`               | build product                |
-| `open_mr`             | open a new MR                |
-| `get_assigned_mr`     | Get a list of assigned MR    |
-| `ask_validation`      | Ask validation (tests or PM) |
-| `test`                | Run test on GKE environment  |
+| Arguments         | Description                  |
+|:------------------|:-----------------------------|
+| `start`           | Start a GKE environment      |
+| `create`          | Create a GKE environment     |
+| `drop`            | Drop a GKE environment       |
+| `cron`            | Create a Jenkins cron        |
+| `build`           | Build product                |
+| `open_mr`         | Open a new MR                |
+| `get_assigned_mr` | Get a list of assigned MR    |
+| `ask_validation`  | Ask validation (tests or PM) |
+| `test`            | Run test on GKE environment  |
 
 ### Start Arguments
 
-| Arguments             | Description                                                    |
-| :-------------------- | :------------------------------------------------------------- |
-| `-b, --branch`        | Branch name (if not specify use current branch)                |
-| `-e, --env`           | GKE environment name (if not specify use current environment)  |
+| Arguments      | Description                                                   |
+|:---------------|:--------------------------------------------------------------|
+| `-b, --branch` | Branch name (if not specify use current branch)               |
+| `-e, --env`    | GKE environment name (if not specify use current environment) |
 
 ### Create Arguments
 
-| Arguments                      | Description                                                                                                          |
-| :----------------------------- | :------------------------------------------------------------------------------------------------------------------- |
-| `-b, --branch`                 | Branch name (if not specify use current branch)                                                                      |
-| `-e, --env`                    | GKE environment name (if not specify use current environment)                                                        |
-| `-iid, --installation-id`      | A short name. In lower case only. (if not specify use current `saagie`)                                              |
-| `-kv, --kubernetes-version`    | Set a custom kubernete version                                                                                       |
-| `-tt, --test-types`            | Tests to run after test creation (UI / API / APIv2 / All)                                                            |
-| `-p, --product_version`        | Use a specify product version                                                                                        |
-| `-a, --auth`                   | Auth_mechanism: Which authentication mechanism to deploy (default: keycloak), [ldap, keycloak, freeipa, sso]         |
-| `-f, --features`               | Features Comma-separated list of features to enable or disable (e.g.  "gpu", "external_ui_lib", "openai", "kyverno") |
+| Arguments                   | Description                                                                                                          |
+|:----------------------------|:---------------------------------------------------------------------------------------------------------------------|
+| `-b, --branch`              | Branch name (if not specify use current branch)                                                                      |
+| `-e, --env`                 | GKE environment name (if not specify use current environment)                                                        |
+| `-iid, --installation-id`   | A short name. In lower case only. (if not specify use current `saagie`)                                              |
+| `-kv, --kubernetes-version` | Set a custom kubernete version                                                                                       |
+| `-tt, --test-types`         | Tests to run after test creation (UI / API / APIv2 / All)                                                            |
+| `-p, --product_version`     | Use a specify product version                                                                                        |
+| `-a, --auth`                | Auth_mechanism: Which authentication mechanism to deploy (default: keycloak), [ldap, keycloak, freeipa, sso]         |
+| `-f, --features`            | Features comma-separated list of features to enable or disable (e.g.  "gpu", "external_ui_lib", "openai", "kyverno") |
 
 ### Drop Arguments
 
-| Arguments             | Description                                                    |
-| :-------------------- | :------------------------------------------------------------- |
-| `-e, --env`           | GKE environment name (if not specify use current environment)  |
+| Arguments   | Description                                                   |
+|:------------|:--------------------------------------------------------------|
+| `-e, --env` | GKE environment name (if not specify use current environment) |
 
 ### Cron Arguments
 
-| Arguments             | Description                |
-| :-------------------- | :------------------------- |
-| `start`               | start a GKE environment    |
-| `create`              | create a GKE environment   |
-| `build`               | build product              |
+| Arguments | Description              |
+|:----------|:-------------------------|
+| `start`   | Start a GKE environment  |
+| `create`  | Create a GKE environment |
+| `build`   | Build product            |
 
 #### Cron Start Arguments
 
-| Arguments                      | Required | Description                                                    |
-| :----------------------------- | :------- | :------------------------------------------------------------- |
-| `-f, --format`                 | true     | Setting up a Jenkins cron                                      |
-| `-b, --branch`                 | false    | Branch name (if not specify use current branch)                |
-| `-e, --env`                    | false    | GKE environment name (if not specify use current environment)  |
+| Arguments      | Required | Description                                                   |
+|:---------------|:---------|:--------------------------------------------------------------|
+| `-f, --format` | true     | Setting up a Jenkins cron                                     |
+| `-b, --branch` | false    | Branch name (if not specify use current branch)               |
+| `-e, --env`    | false    | GKE environment name (if not specify use current environment) |
 
 #### Cron Create Arguments
 
-| Arguments                      | Required | Description                                                              |
-| :----------------------------- | :------- | :----------------------------------------------------------------------- |
-| `-f, --format`                 | true     | Setting up a Jenkins cron                                                |
-| `-b, --branch`                 | false    | Branch name (if not specify use current branch)                          |
-| `-e, --env`                    | false    | GKE environment name (if not specify use current environment)            |
-| `-iid, --installation-id`      | false    | A short name. In lower case only. (if not specify use current `saagie`)  |
+| Arguments                 | Required | Description                                                             |
+|:--------------------------|:---------|:------------------------------------------------------------------------|
+| `-f, --format`            | true     | Setting up a Jenkins cron                                               |
+| `-b, --branch`            | false    | Branch name (if not specify use current branch)                         |
+| `-e, --env`               | false    | GKE environment name (if not specify use current environment)           |
+| `-iid, --installation-id` | false    | A short name. In lower case only. (if not specify use current `saagie`) |
 
 #### Cron Build Arguments
 
-| Arguments                      | Required | Description                                      |
-| :----------------------------- | :------- | :----------------------------------------------- |
-| `-f, --format`                 | true     | Setting up a Jenkins cron                        |
-| `-b, --branch`                 | false    | Branch name (if not specify use current branch)  |
+| Arguments      | Required | Description                                     |
+|:---------------|:---------|:------------------------------------------------|
+| `-f, --format` | true     | Setting up a Jenkins cron                       |
+| `-b, --branch` | false    | Branch name (if not specify use current branch) |
 
 ### Build Arguments
 
-| Arguments                      | Description                                      |
-| :----------------------------- | :----------------------------------------------- |
-| `-b, --branch`                 | Branch name (if not specify use current branch)  |
+| Arguments      | Description                                     |
+|:---------------|:------------------------------------------------|
+| `-b, --branch` | Branch name (if not specify use current branch) |
 
 #### Open MR Arguments
 
-| Arguments         | Required | Description                                      |
-| :---------------- | :------- | :----------------------------------------------- |
-| `-c, --card`      | true     | A Jira Card ID                                   |
-| `-b, --branch`    | false    | Branch name (if not specify use current branch)  |
+| Arguments      | Required | Description                                     |
+|:---------------|:---------|:------------------------------------------------|
+| `-c, --card`   | true     | A Jira Card ID                                  |
+| `-b, --branch` | false    | Branch name (if not specify use current branch) |
 
 #### Get Assigned MR Arguments
 
@@ -164,7 +164,7 @@ TODO
 
 ## Examples
 
-* Open an merge request
+* Open a merge request
     ```bash
     jks open_mr -c id_of_your_ticket
     ```
