@@ -86,14 +86,16 @@ Ensure Python 3.9 and pip 3.9 are installed:
 
 ### Create Arguments
 
-| Arguments                      | Description                                                              |
-| :----------------------------- | :----------------------------------------------------------------------- |
-| `-b, --branch`                 | Branch name (if not specify use current branch)                          |
-| `-e, --env`                    | GKE environment name (if not specify use current environment)            |
-| `-iid, --installation-id`      | A short name. In lower case only. (if not specify use current `saagie`)  |
-| `-kv, --kubernetes-version`    | Set a custom kubernete version                                           |
-| `-tt, --test-types`            | Tests to run after test creation (UI / API / APIv2 / All)                |
-| `-p, --product_version`        | Use a specify product version                                            |
+| Arguments                      | Description                                                                                                          |
+| :----------------------------- | :------------------------------------------------------------------------------------------------------------------- |
+| `-b, --branch`                 | Branch name (if not specify use current branch)                                                                      |
+| `-e, --env`                    | GKE environment name (if not specify use current environment)                                                        |
+| `-iid, --installation-id`      | A short name. In lower case only. (if not specify use current `saagie`)                                              |
+| `-kv, --kubernetes-version`    | Set a custom kubernete version                                                                                       |
+| `-tt, --test-types`            | Tests to run after test creation (UI / API / APIv2 / All)                                                            |
+| `-p, --product_version`        | Use a specify product version                                                                                        |
+| `-a, --auth`                   | Auth_mechanism: Which authentication mechanism to deploy (default: keycloak), [ldap, keycloak, freeipa, sso]         |
+| `-f, --features`               | Features Comma-separated list of features to enable or disable (e.g.  "gpu", "external_ui_lib", "openai", "kyverno") |
 
 ### Drop Arguments
 
