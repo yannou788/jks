@@ -160,7 +160,7 @@ TODO
 
 ---
 
-## Exemples
+## Examples
 
 * Open an merge request
     ```bash
