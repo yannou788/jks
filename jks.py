@@ -393,7 +393,7 @@ def askValidation(server, validation_type, prefix_name, show_progression = False
   if show_progression:
     get_build_progresion(server, project_name, build_number);
 
-def deploy(server, branch_name, prefix_name, show_progression = False, slack_user_id = '', test_types = [], installation_id = 'saagie', kubernetes_version = '', product_version = ''):
+def deploy(server, branch_name, prefix_name, show_progression = False, slack_user_id = '', test_types = [], installation_id = 'saagie', kubernetes_version = '', product_version = '', auth_mechanism = 'keycloak', features = ''):
   build_number = None
 
   # Format project name
@@ -409,6 +409,8 @@ def deploy(server, branch_name, prefix_name, show_progression = False, slack_use
     'installationId': installation_id,
     'kubernetes_version': kubernetes_version,
     'product_version': product_version,
+    'auth_mechanism': auth_mechanism,
+    'features': features,
   }
 
   # Get build number
@@ -438,6 +440,12 @@ def create(args):
 
   if args.kubernetes_version: 
     print(f"• Kubernetes version: {colored(args.kubernetes_version, 'green')}")
+
+  if args.auth: 
+    print(f"• Auth: {colored(args.auth, 'green')}")
+
+  if args.features: 
+    print(f"• Features: {colored(args.features, 'green')}")
   
   if confirm(f"{colored('Are you sure [Y/N]? ', 'light_blue', attrs=['bold'])}"):
     # Start deploy
@@ -449,7 +457,9 @@ def create(args):
       test_types=args.test_types,
       installation_id=args.installation_id,
       kubernetes_version=args.kubernetes_version,
-      product_version=args.product_version
+      product_version=args.product_version,
+      auth_mechanism=args.auth,
+      features=args.features
     );
 
 def start(args):
@@ -608,7 +618,7 @@ if __name__ == "__main__":
   )
 
   # Arguments
-  parser.add_argument('-v', '--version', action='version', version='%(prog)s 2.3.2')
+  parser.add_argument('-v', '--version', action='version', version='%(prog)s 2.3.3')
   subparsers = parser.add_subparsers(help='sub-command help')
 
   # create the parser for the "gke start" command
@@ -625,6 +635,8 @@ if __name__ == "__main__":
   parserCreate.add_argument('-kv', '--kubernetes-version', default='', nargs='?', type=str, help='Set a custom kubernete version')
   parserCreate.add_argument('-tt', '--test-types', type=str, default=[], nargs='+', choices=['UI', 'API', 'APIv2', 'All'], help='Tests to run after deployement (UI|API|APIv2|All)')
   parserCreate.add_argument('-p', '--product_version', default='', const='', nargs='?', type=str, help='Product version')
+  parserCreate.add_argument('-a', '--auth', default='keycloak', const='keycloak', nargs='?', type=str, help='Auth_mechanism: Which authentication mechanism to deploy (default: keycloak), [ldap, keycloak, freeipa, sso]')
+  parserCreate.add_argument('-f', '--features', default='', const='', nargs='?', type=str, help='Features Comma-separated list of features to enable or disable (e.g.  "gpu", "external_ui_lib", "openai", "kyverno")')
   parserCreate.set_defaults(func=create)
 
   # create the parser for the "gke drop" command
