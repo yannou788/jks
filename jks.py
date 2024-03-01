@@ -592,6 +592,22 @@ def get_assigned_mr(args):
 def test(args):
   print(f"{colored('[Test]', 'cyan')} feature not available")
 
+def build_info(args):
+  # Connect to jenkins
+  server = connect_to_jenkins(custom_config['JENKINS'])
+
+  branch_name = get_branch_name(args.branch)
+
+  # Format project name
+  project_name = f'Product/Build/{quote_plus(branch_name)}'
+
+  last_build = server.get_job_info(project_name)['lastBuild']['number']
+  print(f"{colored('[Build Info]', 'cyan')} {colored(branch_name, 'green')} with build number: {colored(last_build, 'green')}")
+
+  while server.get_build_info(project_name, last_build)['result'] is None:
+    time.sleep(10)  # Attendre quelques secondes avant de vérifier à nouveau
+  os.system(custom_config['TERMINAL']['NotificationBuild'] + f" \"Build {last_build} terminé!\"")
+
 def ask_validation(args):
   print(f"{colored('[Ask Validation]', 'cyan')} feature not available")
   # Check if card_id is empty
@@ -689,6 +705,11 @@ if __name__ == "__main__":
   # create the parser for the "product test" command
   parserTest = subparsers.add_parser('test', help='test --help')
   parserTest.set_defaults(func=test)
+
+  # create the parser for the "product build info" command
+  parserBuildInfo = subparsers.add_parser('build_info', description="Wait for your build to be completed to send you a notification.", help='build_info --help')
+  parserBuildInfo.add_argument('-b', '--branch', default='current', const='current', nargs='?', type=str, help='Branch name')
+  parserBuildInfo.set_defaults(func=build_info)
 
   args = parser.parse_args()
   try:

@@ -9,3 +9,6 @@ ApiKey = <YOUR GITLAB API KEY>
 
 [SLACK]
 UserId = <YOUR SLACK USER ID>
+
+[TERMINAL]
+NotificationBuild = notify-send -u critical "Saagie"
