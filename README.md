@@ -82,6 +82,7 @@ Ensure Python 3.9 and pip 3.9 are installed:
 | `ask_validation`  | Ask validation (tests or PM)                                    |
 | `test`            | Run test on GKE environment                                     |
 | `build_info`      | Wait for your build to be completed to send you a notification. |
+| `list`            | Get list of GKE environment.                                    |
 
 ### Start Arguments
 
