@@ -266,7 +266,7 @@ def create_pipeline(server, name, env, cron, slack_user_id, type):
     print(f"{colored('[Error]', 'red')} An exception occurred look at /tmp/jks.log");
     logger.error(e)
 
-def open_mr(card_id, gitlab_user_id, slack_user_id):
+def openMr(server, card_id, gitlab_user_id, slack_user_id):
   build_number = None
 
   # Format project name
@@ -560,13 +560,15 @@ def build(args):
     start_build(server, branch_name, True);
 
 def open_mr(args):
+  # Connect to jenkins
+  server = connect_to_jenkins(custom_config['JENKINS'])
    # Get gitlab user id
   gitlabUserId = get_gitlab_user_id(custom_config['GITLAB']['ServerUrl'], custom_config['GITLAB']['ApiKey']);
 
   print(f"{colored('[MR]', 'cyan')} Open MR for cardId: {colored(args.card, 'green')}")
 
   if confirm(f"{colored('Are you sure [Y/N]? ', 'light_blue', attrs=['bold'])}"):
-    open_mr(args.card, gitlabUserId, custom_config['SLACK']['UserId']);
+    openMr(server, args.card, gitlabUserId, custom_config['SLACK']['UserId']);
 
 def get_assigned_mr(args):
   print(f"{colored('[Get Assigned MR]', 'cyan')}")
