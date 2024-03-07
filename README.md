@@ -21,8 +21,10 @@ Ensure Python 3.9 and pip 3.9 are installed:
     ```bash
     brew install python@3.9
     ```
-
 ---
+
+* To receive notifications, you need to install 'notify-send' or an equivalent and it must be written in .jks-env.
+
 
 ## Installation Steps
 
@@ -48,6 +50,9 @@ Ensure Python 3.9 and pip 3.9 are installed:
 
     [SLACK]
     UserId = UserId
+
+    [TERMINAL]
+    Notification = notify-send
     ```
    > To get your Jenkins API Key: Go to <https://jenkins.devtools.saagie.tech/user/YOUR_ID/configure> and create a token.  
    > To get your Gitlab API Key: Go to <https://gitlab.com/-/profile/personal_access_tokens> and create a token.  
@@ -65,17 +70,18 @@ Ensure Python 3.9 and pip 3.9 are installed:
 
 ## Arguments
 
-| Arguments         | Description                  |
-|:------------------|:-----------------------------|
-| `start`           | Start a GKE environment      |
-| `create`          | Create a GKE environment     |
-| `drop`            | Drop a GKE environment       |
-| `cron`            | Create a Jenkins cron        |
-| `build`           | Build product                |
-| `open_mr`         | Open a new MR                |
-| `get_assigned_mr` | Get a list of assigned MR    |
-| `ask_validation`  | Ask validation (tests or PM) |
-| `test`            | Run test on GKE environment  |
+| Arguments         | Description                                                     |
+|:------------------|:--------------------------------------------------------------- |
+| `start`           | Start a GKE environment                                         |
+| `create`          | Create a GKE environment                                        |
+| `drop`            | Drop a GKE environment                                          |
+| `cron`            | Create a Jenkins cron                                           |
+| `build`           | Build product                                                   |
+| `open_mr`         | Open a new MR                                                   |
+| `get_assigned_mr` | Get a list of assigned MR                                       |
+| `ask_validation`  | Ask validation (tests or PM)                                    |
+| `test`            | Run test on GKE environment                                     |
+| `build_info`      | Wait for your build to be completed to send you a notification. |
 
 ### Start Arguments
 
@@ -146,6 +152,12 @@ Ensure Python 3.9 and pip 3.9 are installed:
 | Arguments      | Required | Description                                     |
 |:---------------|:---------|:------------------------------------------------|
 | `-c, --card`   | true     | A Jira Card ID                                  |
+| `-b, --branch` | false    | Branch name (if not specify use current branch) |
+
+#### Build Info
+
+| Arguments      | Required | Description                                     |
+|:---------------|:---------|:------------------------------------------------|
 | `-b, --branch` | false    | Branch name (if not specify use current branch) |
 
 #### Get Assigned MR Arguments
@@ -235,4 +247,10 @@ TODO
 * Get assigned MR
     ```bash
     jks get_assigned_mr
+    ```
+
+* Build Info
+    ```bash
+    # wait for your build to be completed to send you a notification.
+    jks build_info &
     ```
