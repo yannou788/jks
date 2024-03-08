@@ -8,6 +8,7 @@ import logging
 import pathlib
 import argparse
 import subprocess
+#from subprocess import PIPE, run
 import configparser
 from croniter import croniter
 from termcolor import colored
@@ -462,6 +463,40 @@ def create(args):
       features=args.features
     );
 
+def list(args):
+  """List all environments"""
+  result = subprocess.run("gcloud container clusters list", stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, shell=True)
+  status = result.returncode
+  if status != 0:
+    print(f"{colored('[Error]', 'red')} An exception occurred look at /tmp/jks.log");
+    logger.error(result.stdout)
+    logger.error(result.stderr)
+    raise Exception("An error occurred while listing the environments")
+  
+  lines = result.stdout.strip().splitlines()
+  headers = lines[0].split()
+
+  parsed_data = []
+  for line in lines[1:]:
+    columns = line.split()
+    parsed_line = {}
+    status_index = None
+    for i, (header, value) in enumerate(zip(headers, columns)):
+        if header == 'STATUS':
+            status_index = i
+        parsed_line[header] = value
+    if status_index is not None:
+        parsed_line['STATUS'] = columns[status_index]
+    else:
+        parsed_line['STATUS'] = columns[-1]  # get last column if status_index is none
+    parsed_data.append(parsed_line)
+
+  print(f"{'NAME'.ljust(12)}{'STATUS'}")
+  for item in parsed_data:
+    name = item['NAME']
+    status = item['STATUS']
+    print(f"{name.ljust(12)}{status}")
+
 def start(args):
   """Start an environment gke with command line args"""
   # Connect to jenkins
@@ -638,6 +673,10 @@ if __name__ == "__main__":
   # Arguments
   parser.add_argument('-v', '--version', action='version', version='%(prog)s 2.3.3')
   subparsers = parser.add_subparsers(help='sub-command help')
+
+  # create the parser for the "gke start" command
+  parserList = subparsers.add_parser('list', help='start --help')
+  parserList.set_defaults(func=list)
 
   # create the parser for the "gke start" command
   parserStart = subparsers.add_parser('start', help='start --help')
