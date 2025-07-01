@@ -70,7 +70,7 @@ cron_template = """
 start_stage_template = """
   stage('Start') {{
     steps {{
-      build job: 'Ondemand/GKE/Start/{branch_name}', parameters: [
+      build job: 'Ondemand/SCW/Start/{branch_name}', parameters: [
         [$class: 'StringParameterValue', name: 'prefix_name', value: '{env_name}' ],
         [$class: 'BooleanParameterValue', name: 'confirm', value: true]
       ]
@@ -87,7 +87,7 @@ build_stage_template = """
 deploy_stage_template = """
   stage('Deploy') {{
     steps {{
-      build job: 'Ondemand/GKE/Create/{branch_name}', parameters: [
+      build job: 'Ondemand/SCW/Create/{branch_name}', parameters: [
         [$class: 'StringParameterValue', name: 'prefix_name', value: '{env_name}' ],
         [$class: 'BooleanParameterValue', name: 'confirm', value: true],
         [$class: 'BooleanParameterValue', name: 'create_env', value: true],
@@ -184,7 +184,7 @@ def get_env_name(name):
   if name:
     env = name
     if name == 'current':
-      env = config.list_kube_config_contexts()[1]['context']['cluster'].split('_')[-1] if config.list_kube_config_contexts() else None
+      env = config.list_kube_config_contexts()[1]['context']['cluster'].split('-')[0] if config.list_kube_config_contexts() else None
 
   if env is None:
     print(f"{colored('[Error]', 'red')} Environment not found")
@@ -292,7 +292,7 @@ def delete_env(server, env_name, slack_user_id = ''):
   build_number = None
 
   # Format project name
-  project_name = f'Ondemand/GKE/Drop'
+  project_name = f'Ondemand/SCW/Drop'
 
   parametres_build = {
     'confirm': True,
@@ -312,7 +312,7 @@ def start_env(server, branch_name, env_name, show_progression = False, slack_use
   build_number = None
 
   # Format project name
-  project_name = f'Ondemand/GKE/Start/{quote_plus(branch_name)}'
+  project_name = f'Ondemand/SCW/Start/{quote_plus(branch_name)}'
 
   # Set build parameters
   parametres_build = {
@@ -397,7 +397,7 @@ def deploy(server, branch_name, prefix_name, show_progression = False, slack_use
   build_number = None
 
   # Format project name
-  project_name = f'Ondemand/GKE/Create/{quote_plus(branch_name)}'
+  project_name = f'Ondemand/SCW/Create/{quote_plus(branch_name)}'
 
   parametres_build = {
     'confirm': True,
@@ -425,7 +425,7 @@ def deploy(server, branch_name, prefix_name, show_progression = False, slack_use
     get_build_progresion(server, project_name, build_number);
 
 def create(args):
-  """Create a new environment gke with command line args"""
+  """Create a new environment scw with command line args"""
 
   # Connect to jenkins
   server = connect_to_jenkins(custom_config['JENKINS'])
@@ -463,7 +463,7 @@ def create(args):
     );
 
 def start(args):
-  """Start an environment gke with command line args"""
+  """Start an environment scw with command line args"""
   # Connect to jenkins
   server = connect_to_jenkins(custom_config['JENKINS'])
 
@@ -479,7 +479,7 @@ def start(args):
     start_env(server, branch_name, env, slack_user_id=custom_config['SLACK']['UserId'])
 
 def drop(args):
-  """Drop an environment gke with command line args"""
+  """Drop an environment scw with command line args"""
   # Connect to jenkins
   server = connect_to_jenkins(custom_config['JENKINS'])
 
@@ -493,7 +493,7 @@ def drop(args):
     delete_env(server, env, slack_user_id=custom_config['SLACK']['UserId'])   
 
 def cron(args, action):
-  """Cron an environment gke with command line args"""
+  """Cron an environment scw with command line args"""
     
   # Connect to jenkins
   server = connect_to_jenkins(custom_config['JENKINS'])
@@ -639,13 +639,13 @@ if __name__ == "__main__":
   parser.add_argument('-v', '--version', action='version', version='%(prog)s 2.3.3')
   subparsers = parser.add_subparsers(help='sub-command help')
 
-  # create the parser for the "gke start" command
+  # create the parser for the "scw start" command
   parserStart = subparsers.add_parser('start', help='start --help')
   parserStart.add_argument('-b', '--branch', default='current', const='current', nargs='?', type=str, help='Branch name')
   parserStart.add_argument('-e', '--env', default='current', const='current', nargs='?', type=str, help='Environment')
   parserStart.set_defaults(func=start)
 
-  # create the parser for the "gke create" command
+  # create the parser for the "scw create" command
   parserCreate = subparsers.add_parser('create', help='create --help')
   parserCreate.add_argument('-b', '--branch', default='current', const='current', nargs='?', type=str, help='Branch name')
   parserCreate.add_argument('-e', '--env', default='current', const='current', nargs='?', type=str, help='Environment')
@@ -657,12 +657,12 @@ if __name__ == "__main__":
   parserCreate.add_argument('-f', '--features', default='', const='', nargs='?', type=str, help='Features Comma-separated list of features to enable or disable (e.g.  "gpu", "external_ui_lib", "openai", "kyverno")')
   parserCreate.set_defaults(func=create)
 
-  # create the parser for the "gke drop" command
+  # create the parser for the "scw drop" command
   parserDrop = subparsers.add_parser('drop', help='drop --help')
   parserDrop.add_argument('-e', '--env', default='current', const='current', nargs='?', type=str, help='Environment')
   parserDrop.set_defaults(func=drop)
 
-  # create the parser for the "gke cron" command
+  # create the parser for the "scw cron" command
   parserCron = subparsers.add_parser('cron', help='cron --help') 
   subparsersCron = parserCron.add_subparsers(help='sub-command help')
 
